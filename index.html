@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>College Athletics Power Rankings</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #f9f9f9; }
+  h1 { color: #1a3a5c; font-size: 28px; margin-bottom: 4px; }
+  .subtitle { color: #666; margin-bottom: 30px; font-size: 15px; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  th { background: #1a3a5c; color: white; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 12px 16px; border-bottom: 1px solid #eee; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f5f8ff; }
+  .rank { font-weight: 700; color: #1a3a5c; font-size: 18px; }
+  .score { font-weight: 700; font-size: 16px; }
+  .tier-1 { background: #0d2b52; color: #c8daee; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .tier-2 { background: #e8f0f8; color: #1a4a7a; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .tier-3 { background: #e3f2ec; color: #1a5c3a; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .tier-4 { background: #fdf3dc; color: #b07a1a; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .tier-5 { background: #f0ede8; color: #5a5a5a; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .division-badge { background: #f0ede8; color: #3a3a3a; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .loading { text-align: center; padding: 40px; color: #666; }
+  .updated { font-size: 12px; color: #999; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>⚽ College Athletics Power Rankings</h1>
+<p class="subtitle">Women's Soccer · All Divisions · Universal Power Score</p>
+
+<table id="rankings-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>School</th>
+      <th>Division</th>
+      <th>Conference</th>
+      <th>Power Score</th>
+      <th>Tier</th>
+      <th>Div Rank</th>
+    </tr>
+  </thead>
+  <tbody id="rankings-body">
+    <tr><td colspan="7" class="loading">Loading rankings...</td></tr>
+  </tbody>
+</table>
+
+<p class="updated" id="updated-time"></p>
+
+<script>
+const SUPABASE_URL = 'https://hpabqmdayuhvloazorhv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_KL8is3wH1ibHSxG84lmtRg_VU0xyLjc';
+
+const tierLabels = {
+  1: 'Tier 1 — Elite',
+  2: 'Tier 2 — National',
+  3: 'Tier 3 — Strong',
+  4: 'Tier 4 — Average',
+  5: 'Tier 5 — Developing'
+};
+
+async function loadRankings() {
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,conference_rank,universal_rank,programs(schools(name,division),conferences(name))&order=universal_rank`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+
+    const data = await response.json();
+    const tbody = document.getElementById('rankings-body');
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+      const school = item.programs.schools;
+      const conf = item.programs.conferences;
+      const tier = item.tier;
+
+      const row = `
+        <tr>
+          <td class="rank">${item.universal_rank}</td>
+          <td><strong>${school.name}</strong></td>
+          <td><span class="division-badge">${school.division}</span></td>
+          <td>${conf ? conf.name : 'N/A'}</td>
+          <td class="score">${parseFloat(item.power_score).toFixed(1)}</td>
+          <td><span class="tier-${tier}">${tierLabels[tier]}</span></td>
+          <td>#${item.division_rank}</td>
+        </tr>`;
+      tbody.innerHTML += row;
+    });
+
+    document.getElementById('updated-time').textContent = 
+      'Last updated: ' + new Date().toLocaleDateString();
+
+  } catch(err) {
+    document.getElementById('rankings-body').innerHTML = 
+      '<tr><td colspan="7" class="loading">Error loading data. Please try again.</td></tr>';
+  }
+}
+
+loadRankings();
+</script>
+</body>
+</html>
