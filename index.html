@@ -63,7 +63,7 @@ const tierLabels = {
 
 async function loadRankings() {
   try {
-    const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,conference_rank,universal_rank,programs(schools(name,division),conferences(name))&order=universal_rank`;
+    const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,conference_rank,universal_rank,programs(schools(name,division),conferences(name))&order=universal_rank&season_year=eq.2025`;
     
     const response = await fetch(url, {
       headers: {
