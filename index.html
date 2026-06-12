@@ -181,7 +181,7 @@ async function loadRankings() {
     const pageSize = 1000;
 
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,universal_rank,division_rank,program_id,season_year,programs(school_id,sport_id,schools(name,division),sports(slug))&season_year=eq.2025&programs.sports.slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
+      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,universal_rank,division_rank,program_id,season_year,programs(schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
 
       const response = await fetch(url, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
