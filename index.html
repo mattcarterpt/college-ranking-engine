@@ -7,19 +7,17 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Arial', sans-serif; background: #111111; color: #ffffff; min-height: 100vh; }
-  
-  /* Header */
   .header { background: #000000; padding: 16px 40px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #333; }
   .header img { height: 48px; }
   .header-title { color: #999; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
-
-  /* Hero */
   .hero { background: linear-gradient(135deg, #000000 0%, #222222 100%); padding: 40px 40px 30px; border-bottom: 1px solid #333; }
   .hero h1 { font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -1px; margin-bottom: 6px; }
   .hero h1 span { background: linear-gradient(90deg, #888, #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .hero p { color: #888; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
-
-  /* Controls */
+  .sport-tabs { background: #000; padding: 0 40px; display: flex; gap: 0; border-bottom: 1px solid #333; }
+  .sport-tab { padding: 14px 24px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #555; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .sport-tab:hover { color: #aaa; }
+  .sport-tab.active { color: #fff; border-bottom-color: #fff; }
   .controls-wrap { background: #1a1a1a; padding: 20px 40px; border-bottom: 1px solid #2a2a2a; }
   .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .search-box { flex: 1; min-width: 220px; padding: 10px 16px; border: 1px solid #333; border-radius: 6px; font-size: 14px; outline: none; background: #2a2a2a; color: #fff; }
@@ -27,8 +25,6 @@
   .search-box:focus { border-color: #666; }
   .filter-select { padding: 10px 16px; border: 1px solid #333; border-radius: 6px; font-size: 13px; background: #2a2a2a; color: #fff; outline: none; cursor: pointer; }
   .results-count { color: #555; font-size: 12px; padding: 10px 40px 0; letter-spacing: 1px; }
-
-  /* Table */
   .table-wrap { padding: 20px 40px 40px; }
   table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 8px; overflow: hidden; }
   th { background: #000; color: #888; padding: 12px 16px; text-align: left; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid #333; }
@@ -40,20 +36,17 @@
   .school-name { font-weight: 700; color: #fff; }
   .div-rank { font-size: 12px; color: #555; }
   .score { font-weight: 700; font-size: 15px; color: #fff; }
-
-  /* Division badges */
+  .division-fbs { background: #ffffff; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .division-fcs { background: #cccccc; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
   .division-d1 { background: #ffffff; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
   .division-d2 { background: #444; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
   .division-d3 { background: #2a2a2a; color: #aaa; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #444; }
   .division-naia { background: #333; color: #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid #555; }
-
-  /* Tier badges */
   .tier-1 { background: #fff; color: #000; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .tier-2 { background: #444; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .tier-3 { background: #2a2a2a; color: #aaa; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #444; }
   .tier-4 { background: #1a1a1a; color: #666; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #333; }
   .tier-5 { background: #111; color: #444; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #222; }
-
   .loading { text-align: center; padding: 60px; color: #444; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
   .no-results { text-align: center; padding: 60px; color: #444; font-size: 14px; }
   .footer { text-align: center; padding: 30px; color: #333; font-size: 12px; letter-spacing: 1px; border-top: 1px solid #222; }
@@ -62,13 +55,18 @@
 <body>
 
 <div class="header">
-  <img src="AN%20Logo.png" alt="Athlete Narrative">
+  <img src="AN_Logo.png" alt="Athlete Narrative">
   <span class="header-title">Power Rankings Engine</span>
 </div>
 
 <div class="hero">
-  <h1>Women's Soccer <span>Power Rankings</span></h1>
+  <h1 id="hero-title">Women's Soccer <span>Power Rankings</span></h1>
   <p>All Divisions &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season</p>
+</div>
+
+<div class="sport-tabs">
+  <div class="sport-tab active" onclick="switchSport('womens-soccer', this)">⚽ Women's Soccer</div>
+  <div class="sport-tab" onclick="switchSport('football', this)">🏈 Football</div>
 </div>
 
 <div class="controls-wrap">
@@ -76,10 +74,6 @@
     <input type="text" id="search" class="search-box" placeholder="Search for a school..." oninput="filterTable()">
     <select id="division-filter" class="filter-select" onchange="filterTable()">
       <option value="">All Divisions</option>
-      <option value="NCAA_D1">NCAA Division I</option>
-      <option value="NCAA_D2">NCAA Division II</option>
-      <option value="NCAA_D3">NCAA Division III</option>
-      <option value="NAIA">NAIA</option>
     </select>
     <select id="tier-filter" class="filter-select" onchange="filterTable()">
       <option value="">All Tiers</option>
@@ -120,68 +114,113 @@
 const SUPABASE_URL = 'https://hpabqmdayuhvloazorhv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_KL8is3wH1ibHSxG84lmtRg_VU0xyLjc';
 
-const tierLabels = {
-  1: 'Tier 1 — Elite',
-  2: 'Tier 2 — National',
-  3: 'Tier 3 — Strong',
-  4: 'Tier 4 — Average',
-  5: 'Tier 5 — Developing'
+const tierLabels = { 1: 'Tier 1 — Elite', 2: 'Tier 2 — National', 3: 'Tier 3 — Strong', 4: 'Tier 4 — Average', 5: 'Tier 5 — Developing' };
+
+const sportConfig = {
+  'womens-soccer': {
+    title: "Women's Soccer",
+    divisions: ['NCAA_D1', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
+    divisionLabels: { 'NCAA_D1': 'D1', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
+    divisionClasses: { 'NCAA_D1': 'division-d1', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
+    filterOptions: [
+      { value: 'NCAA_D1', label: 'NCAA Division I' },
+      { value: 'NCAA_D2', label: 'NCAA Division II' },
+      { value: 'NCAA_D3', label: 'NCAA Division III' },
+      { value: 'NAIA', label: 'NAIA' }
+    ]
+  },
+  'football': {
+    title: 'Football',
+    divisions: ['NCAA_FBS', 'NCAA_FCS', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
+    divisionLabels: { 'NCAA_FBS': 'FBS', 'NCAA_FCS': 'FCS', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
+    divisionClasses: { 'NCAA_FBS': 'division-fbs', 'NCAA_FCS': 'division-fcs', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
+    filterOptions: [
+      { value: 'NCAA_FBS', label: 'FBS' },
+      { value: 'NCAA_FCS', label: 'FCS' },
+      { value: 'NCAA_D2', label: 'NCAA Division II' },
+      { value: 'NCAA_D3', label: 'NCAA Division III' },
+      { value: 'NAIA', label: 'NAIA' }
+    ]
+  }
 };
 
 let allRows = [];
+let currentSport = 'womens-soccer';
 let sortKey = 'universal_rank';
 let sortAsc = true;
+
+function switchSport(sport, tab) {
+  currentSport = sport;
+  document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('hero-title').innerHTML = sportConfig[sport].title + ' <span>Power Rankings</span>';
+  updateDivisionFilter();
+  document.getElementById('search').value = '';
+  document.getElementById('tier-filter').value = '';
+  loadRankings();
+}
+
+function updateDivisionFilter() {
+  const select = document.getElementById('division-filter');
+  select.innerHTML = '<option value="">All Divisions</option>';
+  sportConfig[currentSport].filterOptions.forEach(opt => {
+    select.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
+  });
+}
 
 async function loadRankings() {
   document.getElementById('rankings-body').innerHTML =
     '<tr><td colspan="6" class="loading">Loading Rankings...</td></tr>';
 
   try {
+    const config = sportConfig[currentSport];
+    const divisionFilter = config.divisions.map(d => `division.eq.${d}`).join(',');
+    
     let allData = [];
     let from = 0;
     const pageSize = 1000;
 
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,universal_rank,division_rank,program_id,season_year,programs(schools(name,division))&season_year=eq.2025&order=power_score.desc&limit=${pageSize}&offset=${from}`;
+      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,universal_rank,division_rank,program_id,season_year,programs(school_id,sport_id,schools(name,division),sports(slug))&season_year=eq.2025&programs.sports.slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
+
       const response = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const data = await response.json();
       if (!data || data.length === 0) break;
-      allData = allData.concat(data);
+      
+      // Filter to only include programs matching current sport and valid divisions
+      const filtered = data.filter(item => 
+        item.programs && 
+        item.programs.sports && 
+        item.programs.sports.slug === currentSport &&
+        config.divisions.includes(item.programs.schools.division)
+      );
+      
+      allData = allData.concat(filtered);
       if (data.length < pageSize) break;
       from += pageSize;
     }
 
     allData.sort((a, b) => b.power_score - a.power_score);
+    allData.forEach((item, index) => { item.universal_rank = index + 1; });
     allRows = allData;
     renderTable(allRows);
-    document.getElementById('results-count').textContent =
-      `Showing ${allRows.length} programs`;
+    document.getElementById('results-count').textContent = `Showing ${allRows.length} programs`;
 
   } catch(err) {
+    console.error(err);
     document.getElementById('rankings-body').innerHTML =
       '<tr><td colspan="6" class="loading">Error loading data.</td></tr>';
   }
 }
 
 function getDivisionClass(division) {
-  if (division === 'NCAA_D1') return 'division-d1';
-  if (division === 'NCAA_D2') return 'division-d2';
-  if (division === 'NCAA_D3') return 'division-d3';
-  if (division === 'NAIA') return 'division-naia';
-  return 'division-d3';
+  return sportConfig[currentSport].divisionClasses[division] || 'division-d3';
 }
 
 function getDivisionLabel(division) {
-  if (division === 'NCAA_D1') return 'D1';
-  if (division === 'NCAA_D2') return 'D2';
-  if (division === 'NCAA_D3') return 'D3';
-  if (division === 'NAIA') return 'NAIA';
-  return division;
+  return sportConfig[currentSport].divisionLabels[division] || division;
 }
 
 function renderTable(rows) {
@@ -239,6 +278,8 @@ function filterTable() {
   renderTable(filtered);
 }
 
+// Initialize
+updateDivisionFilter();
 loadRankings();
 </script>
 </body>
