@@ -131,15 +131,14 @@ const sportConfig = {
   },
   'football': {
     title: 'Football',
-    divisions: ['NCAA_FBS', 'NCAA_FCS', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
-    divisionLabels: { 'NCAA_FBS': 'FBS', 'NCAA_FCS': 'FCS', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
-    divisionClasses: { 'NCAA_FBS': 'division-fbs', 'NCAA_FCS': 'division-fcs', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
+    divisions: ['NCAA_FBS', 'NCAA_FCS', 'NCAA_D2', 'NCAA_D3'],
+    divisionLabels: { 'NCAA_FBS': 'FBS', 'NCAA_FCS': 'FCS', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3' },
+    divisionClasses: { 'NCAA_FBS': 'division-fbs', 'NCAA_FCS': 'division-fcs', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3' },
     filterOptions: [
       { value: 'NCAA_FBS', label: 'FBS' },
       { value: 'NCAA_FCS', label: 'FCS' },
       { value: 'NCAA_D2', label: 'NCAA Division II' },
-      { value: 'NCAA_D3', label: 'NCAA Division III' },
-      { value: 'NAIA', label: 'NAIA' }
+      { value: 'NCAA_D3', label: 'NCAA Division III' }
     ]
   }
 };
@@ -174,29 +173,25 @@ async function loadRankings() {
 
   try {
     const config = sportConfig[currentSport];
-    const divisionFilter = config.divisions.map(d => `division.eq.${d}`).join(',');
-    
     let allData = [];
     let from = 0;
     const pageSize = 1000;
 
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,universal_rank,division_rank,program_id,season_year,programs(schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
+      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,universal_rank,division_rank,program_id,season_year,sport_slug,programs(schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
 
       const response = await fetch(url, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const data = await response.json();
       if (!data || data.length === 0) break;
-      
-      // Filter to only include programs matching current sport and valid divisions
-      const filtered = data.filter(item => 
-        item.programs && 
-        item.programs.sports && 
-        item.programs.sports.slug === currentSport &&
+
+      const filtered = data.filter(item =>
+        item.programs &&
+        item.programs.schools &&
         config.divisions.includes(item.programs.schools.division)
       );
-      
+
       allData = allData.concat(filtered);
       if (data.length < pageSize) break;
       from += pageSize;
@@ -278,7 +273,6 @@ function filterTable() {
   renderTable(filtered);
 }
 
-// Initialize
 updateDivisionFilter();
 loadRankings();
 </script>
