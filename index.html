@@ -132,15 +132,16 @@ const sportConfig = {
   },
   'football': {
     title: 'Football',
-    subtitle: "FBS &nbsp;·&nbsp; FCS &nbsp;·&nbsp; D2 &nbsp;·&nbsp; D3 &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season",
-    divisions: ['NCAA_FBS', 'NCAA_FCS', 'NCAA_D2', 'NCAA_D3'],
-    divisionLabels: { 'NCAA_FBS': 'FBS', 'NCAA_FCS': 'FCS', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3' },
-    divisionClasses: { 'NCAA_FBS': 'division-fbs', 'NCAA_FCS': 'division-fcs', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3' },
+    subtitle: "FBS &nbsp;·&nbsp; FCS &nbsp;·&nbsp; D2 &nbsp;·&nbsp; D3 &nbsp;·&nbsp; NAIA &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season",
+    divisions: ['NCAA_FBS', 'NCAA_FCS', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
+    divisionLabels: { 'NCAA_FBS': 'FBS', 'NCAA_FCS': 'FCS', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
+    divisionClasses: { 'NCAA_FBS': 'division-fbs', 'NCAA_FCS': 'division-fcs', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
     filterOptions: [
       { value: 'NCAA_FBS', label: 'FBS' },
       { value: 'NCAA_FCS', label: 'FCS' },
       { value: 'NCAA_D2', label: 'NCAA Division II' },
-      { value: 'NCAA_D3', label: 'NCAA Division III' }
+      { value: 'NCAA_D3', label: 'NCAA Division III' },
+      { value: 'NAIA', label: 'NAIA' }
     ]
   }
 };
@@ -215,7 +216,7 @@ async function loadRankings() {
 }
 
 function getDivisionClass(division) {
-  return sportConfig[currentSport].divisionClasses[division] || 'division-d3';
+  return sportConfig[currentSport].divisionClasses[division] || 'division-naia';
 }
 
 function getDivisionLabel(division) {
