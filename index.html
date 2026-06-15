@@ -131,8 +131,14 @@ const gradeTooltips = {
   'A': 'Elite coach — top 20% of all D1 programs by win rate and postseason success',
   'B': 'Strong coach — above average win rate with consistent results',
   'C': 'Average coach — win rate in line with typical D1 programs',
-  'D': 'Below average — win rate below most D1 programs',
-  'F': 'Struggling — win rate in bottom 20% of all D1 programs',
+  'D': 'Below average coach — win rate below most D1 programs',
+  'F': 'Struggling coach — win rate in bottom 20% of all D1 programs',
+};
+
+const trendTooltips = {
+  '↑': 'Trending up — program has improved over the last 3 seasons',
+  '↓': 'Trending down — program has declined over the last 3 seasons',
+  '→': 'Holding steady — performance has been consistent over the last 3 seasons',
 };
 
 const sportConfig = {
@@ -270,7 +276,10 @@ function renderTable(rows) {
     const divLabel = getDivisionLabel(school.division);
     const display = item.coach_grade_display;
     const gradeKey = display ? display[0] : null;
-    const tooltip = gradeKey ? (gradeTooltips[gradeKey] || '') : '';
+    const trendKey = display ? display[1] : null;
+    const gradeText = gradeTooltips[gradeKey] || '';
+    const trendText = trendTooltips[trendKey] || '';
+    const tooltip = gradeKey ? `${gradeText}${trendText ? ' · ' + trendText : ''}` : '';
     const gradeHtml = display
       ? `<span class="coach-grade grade-${gradeKey.toLowerCase()}">${display}<span class="coach-tooltip">${tooltip}</span></span>`
       : `<span class="grade-none">—</span>`;
