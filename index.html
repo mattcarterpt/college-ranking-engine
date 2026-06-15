@@ -47,6 +47,9 @@
   .tier-3 { background: #2a2a2a; color: #aaa; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #444; }
   .tier-4 { background: #1a1a1a; color: #666; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #333; }
   .tier-5 { background: #111; color: #444; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #222; }
+  .has-tooltip { position: relative; display: inline-block; cursor: help; }
+  .has-tooltip .tooltip { display: none; position: absolute; right: 100%; top: 50%; transform: translateY(-50%); background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 400; white-space: nowrap; z-index: 999; margin-right: 8px; pointer-events: none; }
+  .has-tooltip:hover .tooltip { display: block; }
   .coach-grade { position: relative; font-weight: 900; font-size: 15px; cursor: help; display: inline-block; }
   .grade-a { color: #4caf50; }
   .grade-b { color: #8bc34a; }
@@ -126,6 +129,19 @@ const SUPABASE_URL = 'https://hpabqmdayuhvloazorhv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_KL8is3wH1ibHSxG84lmtRg_VU0xyLjc';
 
 const tierLabels = { 1: 'Tier 1 — Elite', 2: 'Tier 2 — National', 3: 'Tier 3 — Strong', 4: 'Tier 4 — Average', 5: 'Tier 5 — Developing' };
+
+const tierTooltips = {
+  1: 'Elite — among the best programs in the country across all tracked seasons',
+  2: 'National — consistent top-level performers with strong multi-year records',
+  3: 'Strong — above average programs with competitive win rates',
+  4: 'Average — mid-level programs typical of their division',
+  5: 'Developing — programs with below average win rates over the tracked period',
+};
+
+function getPowerScoreTooltip(score, division) {
+  const divLabel = division.replace('NCAA_', '').replace('_', ' ');
+  return `3-year weighted score across ${divLabel} programs · higher scores reflect better win rates, strength of schedule, and postseason success`;
+}
 
 function getGradeTooltips(division) {
   const divLabel = division.replace('NCAA_', '').replace('_', ' ');
@@ -277,6 +293,16 @@ function renderTable(rows) {
     const tier = item.tier;
     const divClass = getDivisionClass(school.division);
     const divLabel = getDivisionLabel(school.division);
+
+    // Power score tooltip
+    const powerTooltip = getPowerScoreTooltip(item.power_score, school.division);
+    const powerHtml = `<span class="has-tooltip score">${parseFloat(item.power_score).toFixed(1)}<span class="tooltip">${powerTooltip}</span></span>`;
+
+    // Tier tooltip
+    const tierTooltip = tierTooltips[tier] || '';
+    const tierHtml = `<span class="has-tooltip tier-${tier}">${tierLabels[tier]}<span class="tooltip">${tierTooltip}</span></span>`;
+
+    // Coach grade tooltip
     const display = item.coach_grade_display;
     const gradeKey = display ? display[0] : null;
     const trendKey = display ? display[1] : null;
@@ -287,14 +313,15 @@ function renderTable(rows) {
     const gradeHtml = display
       ? `<span class="coach-grade grade-${gradeKey.toLowerCase()}">${display}<span class="coach-tooltip">${tooltip}</span></span>`
       : `<span class="grade-none">—</span>`;
+
     tbody.innerHTML += `
       <tr>
         <td class="rank">${item.universal_rank}</td>
         <td class="school-name">${school.name}</td>
         <td><span class="${divClass}">${divLabel}</span></td>
         <td class="div-rank">#${item.division_rank || '—'}</td>
-        <td class="score">${parseFloat(item.power_score).toFixed(1)}</td>
-        <td><span class="tier-${tier}">${tierLabels[tier]}</span></td>
+        <td>${powerHtml}</td>
+        <td>${tierHtml}</td>
         <td>${gradeHtml}</td>
       </tr>`;
   });
