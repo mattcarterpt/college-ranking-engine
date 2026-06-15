@@ -127,13 +127,16 @@ const SUPABASE_KEY = 'sb_publishable_KL8is3wH1ibHSxG84lmtRg_VU0xyLjc';
 
 const tierLabels = { 1: 'Tier 1 — Elite', 2: 'Tier 2 — National', 3: 'Tier 3 — Strong', 4: 'Tier 4 — Average', 5: 'Tier 5 — Developing' };
 
-const gradeTooltips = {
-  'A': 'Elite coach — top 20% of all D1 programs by win rate and postseason success',
-  'B': 'Strong coach — above average win rate with consistent results',
-  'C': 'Average coach — win rate in line with typical D1 programs',
-  'D': 'Below average coach — win rate below most D1 programs',
-  'F': 'Struggling coach — win rate in bottom 20% of all D1 programs',
-};
+function getGradeTooltips(division) {
+  const divLabel = division.replace('NCAA_', '').replace('_', ' ');
+  return {
+    'A': `Elite coach — top 20% of all ${divLabel} programs by win rate and postseason success`,
+    'B': `Strong coach — above average win rate among ${divLabel} programs`,
+    'C': `Average coach — win rate in line with typical ${divLabel} programs`,
+    'D': `Below average coach — win rate below most ${divLabel} programs`,
+    'F': `Struggling coach — win rate in bottom 20% of all ${divLabel} programs`,
+  };
+}
 
 const trendTooltips = {
   '↑': 'Trending up — program has improved over the last 3 seasons',
@@ -277,6 +280,7 @@ function renderTable(rows) {
     const display = item.coach_grade_display;
     const gradeKey = display ? display[0] : null;
     const trendKey = display ? display[1] : null;
+    const gradeTooltips = getGradeTooltips(school.division);
     const gradeText = gradeTooltips[gradeKey] || '';
     const trendText = trendTooltips[trendKey] || '';
     const tooltip = gradeKey ? `${gradeText}${trendText ? ' · ' + trendText : ''}` : '';
