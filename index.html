@@ -59,6 +59,10 @@
   .grade-none { color: #444; font-size: 12px; }
   .coach-tooltip { display: none; position: absolute; right: 100%; top: 50%; transform: translateY(-50%); background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 400; white-space: nowrap; z-index: 999; margin-right: 8px; pointer-events: none; }
   .coach-grade:hover .coach-tooltip { display: block; }
+  .roster-cell { font-weight: 700; font-size: 13px; cursor: help; display: inline-block; position: relative; }
+  .roster-open { color: #4caf50; }
+  .roster-low { color: #ffc107; }
+  .roster-none { color: #444; font-size: 12px; }
   .loading { text-align: center; padding: 60px; color: #444; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
   .no-results { text-align: center; padding: 60px; color: #444; font-size: 14px; }
   .footer { text-align: center; padding: 30px; color: #333; font-size: 12px; letter-spacing: 1px; border-top: 1px solid #222; }
@@ -112,10 +116,11 @@
         <th onclick="sortTable('power_score')">Power Score</th>
         <th onclick="sortTable('tier')">Tier</th>
         <th onclick="sortTable('coach_quality_score')">Coach</th>
+        <th onclick="sortTable('open_spots')">Roster</th>
       </tr>
     </thead>
     <tbody id="rankings-body">
-      <tr><td colspan="7" class="loading">Loading Rankings...</td></tr>
+      <tr><td colspan="8" class="loading">Loading Rankings...</td></tr>
     </tbody>
   </table>
 </div>
@@ -231,7 +236,7 @@ function updateDivisionFilter() {
 
 async function loadRankings() {
   document.getElementById('rankings-body').innerHTML =
-    '<tr><td colspan="7" class="loading">Loading Rankings...</td></tr>';
+    '<tr><td colspan="8" class="loading">Loading Rankings...</td></tr>';
 
   try {
     const config = sportConfig[currentSport];
@@ -240,7 +245,7 @@ async function loadRankings() {
     const pageSize = 1000;
 
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,program_id,season_year,sport_slug,coach_quality_score,coach_grade_display,programs(schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
+      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,program_id,season_year,sport_slug,coach_quality_score,coach_grade_display,roster_size,seniors_leaving,open_spots,senior_positions,programs(schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
 
       const response = await fetch(url, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -268,7 +273,7 @@ async function loadRankings() {
   } catch(err) {
     console.error(err);
     document.getElementById('rankings-body').innerHTML =
-      '<tr><td colspan="7" class="loading">Error loading data.</td></tr>';
+      '<tr><td colspan="8" class="loading">Error loading data.</td></tr>';
   }
 }
 
@@ -280,10 +285,32 @@ function getDivisionLabel(division) {
   return sportConfig[currentSport].divisionLabels[division] || division;
 }
 
+function getRosterHtml(item) {
+  const size = item.roster_size;
+  const seniors = item.seniors_leaving;
+  const positions = item.senior_positions;
+
+  if (!size) return '<span class="roster-none">—</span>';
+
+  const spotsClass = seniors >= 5 ? 'roster-open' : 'roster-low';
+
+  let posStr = '';
+  if (positions && Object.keys(positions).length > 0) {
+    posStr = ' · Positions opening: ' + Object.entries(positions)
+      .sort((a, b) => b[1] - a[1])
+      .map(([pos, count]) => `${count} ${pos}`)
+      .join(', ');
+  }
+
+  const tooltip = `Roster: ${size}/28 · ${seniors} seniors graduating${posStr}`;
+
+  return `<span class="has-tooltip roster-cell ${spotsClass}">${seniors} spots<span class="tooltip">${tooltip}</span></span>`;
+}
+
 function renderTable(rows) {
   const tbody = document.getElementById('rankings-body');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="no-results">No programs found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="no-results">No programs found.</td></tr>';
     document.getElementById('results-count').textContent = '0 programs found';
     return;
   }
@@ -294,15 +321,12 @@ function renderTable(rows) {
     const divClass = getDivisionClass(school.division);
     const divLabel = getDivisionLabel(school.division);
 
-    // Power score tooltip
     const powerTooltip = getPowerScoreTooltip(item.power_score, school.division);
     const powerHtml = `<span class="has-tooltip score">${parseFloat(item.power_score).toFixed(1)}<span class="tooltip">${powerTooltip}</span></span>`;
 
-    // Tier tooltip
     const tierTooltip = tierTooltips[tier] || '';
     const tierHtml = `<span class="has-tooltip tier-${tier}">${tierLabels[tier]}<span class="tooltip">${tierTooltip}</span></span>`;
 
-    // Coach grade tooltip
     const display = item.coach_grade_display;
     const gradeKey = display ? display[0] : null;
     const trendKey = display ? display[1] : null;
@@ -314,6 +338,8 @@ function renderTable(rows) {
       ? `<span class="coach-grade grade-${gradeKey.toLowerCase()}">${display}<span class="coach-tooltip">${tooltip}</span></span>`
       : `<span class="grade-none">—</span>`;
 
+    const rosterHtml = getRosterHtml(item);
+
     tbody.innerHTML += `
       <tr>
         <td class="rank">${item.universal_rank}</td>
@@ -323,6 +349,7 @@ function renderTable(rows) {
         <td>${powerHtml}</td>
         <td>${tierHtml}</td>
         <td>${gradeHtml}</td>
+        <td>${rosterHtml}</td>
       </tr>`;
   });
   document.getElementById('results-count').textContent =
