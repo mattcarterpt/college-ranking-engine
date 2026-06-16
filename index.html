@@ -62,7 +62,7 @@
   .roster-cell { font-weight: 700; font-size: 13px; cursor: help; display: inline-block; position: relative; }
   .roster-open { color: #4caf50; }
   .roster-low { color: #ffc107; }
-  .roster-none { color: #444; font-size: 12px; }
+  .roster-none { color: #444; font-size: 11px; }
   .loading { text-align: center; padding: 60px; color: #444; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
   .no-results { text-align: center; padding: 60px; color: #444; font-size: 14px; }
   .footer { text-align: center; padding: 30px; color: #333; font-size: 12px; letter-spacing: 1px; border-top: 1px solid #222; }
@@ -290,7 +290,7 @@ function getRosterHtml(item) {
   const seniors = item.seniors_leaving;
   const positions = item.senior_positions;
 
-  if (!size) return '<span class="roster-none">—</span>';
+  if (!size) return '<span class="roster-none">No Roster Data</span>';
 
   const spotsClass = seniors >= 5 ? 'roster-open' : 'roster-low';
 
