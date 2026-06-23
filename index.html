@@ -36,6 +36,7 @@
   .school-name { font-weight: 700; color: #fff; }
   .div-rank { font-size: 12px; color: #555; }
   .score { font-weight: 700; font-size: 15px; color: #fff; }
+  .score-none { color: #444; font-size: 13px; }
   .division-fbs { background: #1a6b3c; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
   .division-fcs { background: #2e86ab; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
   .division-d1 { background: #1a6b3c; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
@@ -47,6 +48,7 @@
   .tier-3 { background: #2a2a2a; color: #aaa; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #444; }
   .tier-4 { background: #1a1a1a; color: #666; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #333; }
   .tier-5 { background: #111; color: #444; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid #222; }
+  .tier-none { color: #444; font-size: 12px; }
   .has-tooltip { position: relative; display: inline-block; cursor: help; }
   .has-tooltip .tooltip { display: none; position: absolute; right: 100%; top: 50%; transform: translateY(-50%); background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 400; white-space: nowrap; z-index: 999; margin-right: 8px; pointer-events: none; }
   .has-tooltip:hover .tooltip { display: block; }
@@ -264,8 +266,28 @@ async function loadRankings() {
       from += pageSize;
     }
 
-    allData.sort((a, b) => b.power_score - a.power_score);
-    allData.forEach((item, index) => { item.universal_rank = index + 1; });
+    // Only rank/sort by power_score among rows that actually have a score.
+    // Rows with a null power_score (roster-only records) go to the bottom,
+    // unranked, instead of poisoning the sort with NaN.
+    allData.sort((a, b) => {
+      const aHas = typeof a.power_score === 'number';
+      const bHas = typeof b.power_score === 'number';
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      if (!aHas && !bHas) return 0;
+      return b.power_score - a.power_score;
+    });
+
+    let rank = 0;
+    allData.forEach((item) => {
+      if (typeof item.power_score === 'number') {
+        rank += 1;
+        item.universal_rank = rank;
+      } else {
+        item.universal_rank = null;
+      }
+    });
+
     allRows = allData;
     renderTable(allRows);
     document.getElementById('results-count').textContent = `Showing ${allRows.length} programs`;
@@ -288,23 +310,48 @@ function getDivisionLabel(division) {
 function getRosterHtml(item) {
   const size = item.roster_size;
   const seniors = item.seniors_leaving;
-  const positions = item.senior_positions;
+  let positions = item.senior_positions;
 
-  if (!size) return '<span class="roster-none">No Roster Data</span>';
+  if (size === null || size === undefined) return '<span class="roster-none">No Roster Data</span>';
 
-  const spotsClass = seniors >= 5 ? 'roster-open' : 'roster-low';
-
-  let posStr = '';
-  if (positions && Object.keys(positions).length > 0) {
-    posStr = ' · Positions opening: ' + Object.entries(positions)
-      .sort((a, b) => b[1] - a[1])
-      .map(([pos, count]) => `${count} ${pos}`)
-      .join(', ');
+  if (typeof positions === 'string') {
+    try { positions = JSON.parse(positions); } catch (e) { positions = null; }
   }
 
-  const tooltip = `Roster: ${size}/28 · ${seniors} seniors graduating${posStr}`;
+  const seniorCount = typeof seniors === 'number' ? seniors : 0;
+  const spotsClass = seniorCount >= 5 ? 'roster-open' : 'roster-low';
 
-  return `<span class="has-tooltip roster-cell ${spotsClass}">${seniors} spots<span class="tooltip">${tooltip}</span></span>`;
+  let posStr = '';
+  if (positions && typeof positions === 'object' && Object.keys(positions).length > 0) {
+    const entries = Object.entries(positions)
+      .filter(([pos, count]) => pos && pos !== '?' && typeof count === 'number');
+    if (entries.length > 0) {
+      posStr = ' · Positions opening: ' + entries
+        .sort((a, b) => b[1] - a[1])
+        .map(([pos, count]) => `${count} ${pos}`)
+        .join(', ');
+    }
+  }
+
+  const tooltip = `Roster: ${size}/28 · ${seniorCount} seniors graduating${posStr}`;
+
+  return `<span class="has-tooltip roster-cell ${spotsClass}">${seniorCount} spots<span class="tooltip">${tooltip}</span></span>`;
+}
+
+function getPowerScoreHtml(item, division) {
+  if (typeof item.power_score !== 'number' || isNaN(item.power_score)) {
+    return '<span class="score-none">—</span>';
+  }
+  const powerTooltip = getPowerScoreTooltip(item.power_score, division);
+  return `<span class="has-tooltip score">${item.power_score.toFixed(1)}<span class="tooltip">${powerTooltip}</span></span>`;
+}
+
+function getTierHtml(tier) {
+  if (tier === null || tier === undefined || !tierLabels[tier]) {
+    return '<span class="tier-none">No Score</span>';
+  }
+  const tierTooltip = tierTooltips[tier] || '';
+  return `<span class="has-tooltip tier-${tier}">${tierLabels[tier]}<span class="tooltip">${tierTooltip}</span></span>`;
 }
 
 function renderTable(rows) {
@@ -321,11 +368,8 @@ function renderTable(rows) {
     const divClass = getDivisionClass(school.division);
     const divLabel = getDivisionLabel(school.division);
 
-    const powerTooltip = getPowerScoreTooltip(item.power_score, school.division);
-    const powerHtml = `<span class="has-tooltip score">${parseFloat(item.power_score).toFixed(1)}<span class="tooltip">${powerTooltip}</span></span>`;
-
-    const tierTooltip = tierTooltips[tier] || '';
-    const tierHtml = `<span class="has-tooltip tier-${tier}">${tierLabels[tier]}<span class="tooltip">${tierTooltip}</span></span>`;
+    const powerHtml = getPowerScoreHtml(item, school.division);
+    const tierHtml = getTierHtml(tier);
 
     const display = item.coach_grade_display;
     const gradeKey = display ? display[0] : null;
@@ -339,13 +383,15 @@ function renderTable(rows) {
       : `<span class="grade-none">—</span>`;
 
     const rosterHtml = getRosterHtml(item);
+    const rankDisplay = item.universal_rank !== null ? item.universal_rank : '—';
+    const divRankDisplay = item.division_rank ? `#${item.division_rank}` : '—';
 
     tbody.innerHTML += `
       <tr>
-        <td class="rank">${item.universal_rank}</td>
+        <td class="rank">${rankDisplay}</td>
         <td class="school-name">${school.name}</td>
         <td><span class="${divClass}">${divLabel}</span></td>
-        <td class="div-rank">#${item.division_rank || '—'}</td>
+        <td class="div-rank">${divRankDisplay}</td>
         <td>${powerHtml}</td>
         <td>${tierHtml}</td>
         <td>${gradeHtml}</td>
@@ -362,7 +408,12 @@ function sortTable(key) {
     let aVal, bVal;
     if (key === 'name') { aVal = a.programs.schools.name.toLowerCase(); bVal = b.programs.schools.name.toLowerCase(); }
     else if (key === 'division') { aVal = a.programs.schools.division; bVal = b.programs.schools.division; }
-    else { aVal = a[key] || 0; bVal = b[key] || 0; }
+    else { aVal = a[key]; bVal = b[key]; }
+    const aMissing = aVal === null || aVal === undefined;
+    const bMissing = bVal === null || bVal === undefined;
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
     if (aVal < bVal) return sortAsc ? -1 : 1;
     if (aVal > bVal) return sortAsc ? 1 : -1;
     return 0;
