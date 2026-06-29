@@ -33,7 +33,10 @@
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #222; }
   .rank { font-weight: 900; color: #fff; font-size: 18px; }
-  .school-name { font-weight: 700; color: #fff; }
+  .school-name { font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .school-name:hover { color: #4caf50; }
+  .expand-icon { font-size: 11px; color: #666; transition: transform 0.2s; display: inline-block; }
+  .expand-icon.open { transform: rotate(90deg); color: #4caf50; }
   .div-rank { font-size: 12px; color: #555; }
   .score { font-weight: 700; font-size: 15px; color: #fff; }
   .score-none { color: #444; font-size: 13px; }
@@ -68,26 +71,31 @@
   .loading { text-align: center; padding: 60px; color: #444; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
   .no-results { text-align: center; padding: 60px; color: #444; font-size: 14px; }
   .footer { text-align: center; padding: 30px; color: #333; font-size: 12px; letter-spacing: 1px; border-top: 1px solid #222; }
+  .profile-row td { background: #161616; padding: 0; }
+  .profile-row.hidden { display: none; }
+  .profile-content { padding: 20px 24px 24px 48px; border-left: 3px solid #4caf50; }
+  .profile-section { margin-bottom: 14px; }
+  .profile-section:last-child { margin-bottom: 0; }
+  .profile-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #4caf50; font-weight: 700; margin-bottom: 6px; }
+  .profile-text { font-size: 13px; line-height: 1.6; color: #bbb; max-width: 900px; }
+  .profile-loading { font-size: 13px; color: #555; letter-spacing: 1px; }
+  .profile-empty { font-size: 13px; color: #444; font-style: italic; }
 </style>
 </head>
 <body>
-
 <div class="header">
   <img src="AN_Logo.png" alt="Athlete Narrative">
   <span class="header-title">Power Rankings Engine</span>
 </div>
-
 <div class="hero">
   <h1 id="hero-title">Women's Soccer <span>Power Rankings</span></h1>
   <p id="hero-subtitle">All Divisions &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season</p>
 </div>
-
 <div class="sport-tabs">
   <div class="sport-tab active" onclick="switchSport('womens-soccer', this)">⚽ Women's Soccer</div>
   <div class="sport-tab" onclick="switchSport('mens-soccer', this)">⚽ Men's Soccer</div>
   <div class="sport-tab" onclick="switchSport('football', this)">🏈 Football</div>
 </div>
-
 <div class="controls-wrap">
   <div class="controls">
     <input type="text" id="search" class="search-box" placeholder="Search for a school..." oninput="filterTable()">
@@ -104,9 +112,7 @@
     </select>
   </div>
 </div>
-
 <div class="results-count" id="results-count"></div>
-
 <div class="table-wrap">
   <table id="rankings-table">
     <thead>
@@ -126,17 +132,13 @@
     </tbody>
   </table>
 </div>
-
 <div class="footer">
   © 2025 Athlete Narrative · College Athletics Power Rankings
 </div>
-
 <script>
 const SUPABASE_URL = 'https://hpabqmdayuhvloazorhv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_KL8is3wH1ibHSxG84lmtRg_VU0xyLjc';
-
 const tierLabels = { 1: 'Tier 1 — Elite', 2: 'Tier 2 — National', 3: 'Tier 3 — Strong', 4: 'Tier 4 — Average', 5: 'Tier 5 — Developing' };
-
 const tierTooltips = {
   1: 'Elite — among the best programs in the country across all tracked seasons',
   2: 'National — consistent top-level performers with strong multi-year records',
@@ -144,12 +146,10 @@ const tierTooltips = {
   4: 'Average — mid-level programs typical of their division',
   5: 'Developing — programs with below average win rates over the tracked period',
 };
-
 function getPowerScoreTooltip(score, division) {
   const divLabel = division.replace('NCAA_', '').replace('_', ' ');
   return `3-year weighted score across ${divLabel} programs · higher scores reflect better win rates, strength of schedule, and postseason success`;
 }
-
 function getGradeTooltips(division) {
   const divLabel = division.replace('NCAA_', '').replace('_', ' ');
   return {
@@ -160,13 +160,11 @@ function getGradeTooltips(division) {
     'F': `Struggling coach — win rate in bottom 20% of all ${divLabel} programs`,
   };
 }
-
 const trendTooltips = {
   '↑': 'Trending up — program has improved over the last 3 seasons',
   '↓': 'Trending down — program has declined over the last 3 seasons',
   '→': 'Holding steady — performance has been consistent over the last 3 seasons',
 };
-
 const sportConfig = {
   'womens-soccer': {
     title: "Women's Soccer",
@@ -209,14 +207,15 @@ const sportConfig = {
     ]
   }
 };
-
 let allRows = [];
 let currentSport = 'womens-soccer';
 let sortKey = 'universal_rank';
 let sortAsc = true;
-
+let openProgramId = null;
+const profileCache = {};
 function switchSport(sport, tab) {
   currentSport = sport;
+  openProgramId = null;
   document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
   tab.classList.add('active');
   document.getElementById('hero-title').innerHTML = sportConfig[sport].title + ' <span>Power Rankings</span>';
@@ -227,7 +226,6 @@ function switchSport(sport, tab) {
   document.getElementById('division-filter').value = '';
   loadRankings();
 }
-
 function updateDivisionFilter() {
   const select = document.getElementById('division-filter');
   select.innerHTML = '<option value="">All Divisions</option>';
@@ -235,40 +233,30 @@ function updateDivisionFilter() {
     select.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
   });
 }
-
 async function loadRankings() {
   document.getElementById('rankings-body').innerHTML =
     '<tr><td colspan="8" class="loading">Loading Rankings...</td></tr>';
-
   try {
     const config = sportConfig[currentSport];
     let allData = [];
     let from = 0;
     const pageSize = 1000;
-
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,program_id,season_year,sport_slug,coach_quality_score,coach_grade_display,roster_size,seniors_leaving,open_spots,senior_positions,programs(schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
-
+      const url = `${SUPABASE_URL}/rest/v1/power_scores?select=power_score,tier,division_rank,program_id,season_year,sport_slug,coach_quality_score,coach_grade_display,roster_size,seniors_leaving,open_spots,senior_positions,programs(school_id,schools(name,division))&season_year=eq.2025&sport_slug=eq.${currentSport}&order=power_score.desc&limit=${pageSize}&offset=${from}`;
       const response = await fetch(url, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const data = await response.json();
       if (!data || data.length === 0) break;
-
       const filtered = data.filter(item =>
         item.programs &&
         item.programs.schools &&
         config.divisions.includes(item.programs.schools.division)
       );
-
       allData = allData.concat(filtered);
       if (data.length < pageSize) break;
       from += pageSize;
     }
-
-    // Only rank/sort by power_score among rows that actually have a score.
-    // Rows with a null power_score (roster-only records) go to the bottom,
-    // unranked, instead of poisoning the sort with NaN.
     allData.sort((a, b) => {
       const aHas = typeof a.power_score === 'number';
       const bHas = typeof b.power_score === 'number';
@@ -277,7 +265,6 @@ async function loadRankings() {
       if (!aHas && !bHas) return 0;
       return b.power_score - a.power_score;
     });
-
     let rank = 0;
     allData.forEach((item) => {
       if (typeof item.power_score === 'number') {
@@ -287,40 +274,31 @@ async function loadRankings() {
         item.universal_rank = null;
       }
     });
-
     allRows = allData;
     renderTable(allRows);
     document.getElementById('results-count').textContent = `Showing ${allRows.length} programs`;
-
   } catch(err) {
     console.error(err);
     document.getElementById('rankings-body').innerHTML =
       '<tr><td colspan="8" class="loading">Error loading data.</td></tr>';
   }
 }
-
 function getDivisionClass(division) {
   return sportConfig[currentSport].divisionClasses[division] || 'division-naia';
 }
-
 function getDivisionLabel(division) {
   return sportConfig[currentSport].divisionLabels[division] || division;
 }
-
 function getRosterHtml(item) {
   const size = item.roster_size;
   const seniors = item.seniors_leaving;
   let positions = item.senior_positions;
-
   if (size === null || size === undefined) return '<span class="roster-none">No Roster Data</span>';
-
   if (typeof positions === 'string') {
     try { positions = JSON.parse(positions); } catch (e) { positions = null; }
   }
-
   const seniorCount = typeof seniors === 'number' ? seniors : 0;
   const spotsClass = seniorCount >= 5 ? 'roster-open' : 'roster-low';
-
   let posStr = '';
   if (positions && typeof positions === 'object' && Object.keys(positions).length > 0) {
     const entries = Object.entries(positions)
@@ -332,12 +310,9 @@ function getRosterHtml(item) {
         .join(', ');
     }
   }
-
   const tooltip = `Roster: ${size}/28 · ${seniorCount} seniors graduating${posStr}`;
-
   return `<span class="has-tooltip roster-cell ${spotsClass}">${seniorCount} spots<span class="tooltip">${tooltip}</span></span>`;
 }
-
 function getPowerScoreHtml(item, division) {
   if (typeof item.power_score !== 'number' || isNaN(item.power_score)) {
     return '<span class="score-none">—</span>';
@@ -345,7 +320,6 @@ function getPowerScoreHtml(item, division) {
   const powerTooltip = getPowerScoreTooltip(item.power_score, division);
   return `<span class="has-tooltip score">${item.power_score.toFixed(1)}<span class="tooltip">${powerTooltip}</span></span>`;
 }
-
 function getTierHtml(tier) {
   if (tier === null || tier === undefined || !tierLabels[tier]) {
     return '<span class="tier-none">No Score</span>';
@@ -353,7 +327,61 @@ function getTierHtml(tier) {
   const tierTooltip = tierTooltips[tier] || '';
   return `<span class="has-tooltip tier-${tier}">${tierLabels[tier]}<span class="tooltip">${tierTooltip}</span></span>`;
 }
-
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+async function toggleProfile(programId, schoolId, rowId) {
+  const wasOpen = openProgramId === programId;
+  document.querySelectorAll('.profile-row').forEach(r => r.classList.add('hidden'));
+  document.querySelectorAll('.expand-icon').forEach(i => i.classList.remove('open'));
+  if (wasOpen) {
+    openProgramId = null;
+    return;
+  }
+  openProgramId = programId;
+  const profileRow = document.getElementById('profile-' + rowId);
+  const icon = document.getElementById('icon-' + rowId);
+  profileRow.classList.remove('hidden');
+  if (icon) icon.classList.add('open');
+  const contentDiv = document.getElementById('profile-content-' + rowId);
+  const cacheKey = programId + '|' + schoolId;
+  if (profileCache[cacheKey]) {
+    contentDiv.innerHTML = profileCache[cacheKey];
+    return;
+  }
+  contentDiv.innerHTML = '<div class="profile-loading">Loading school &amp; program info…</div>';
+  try {
+    const [schoolRes, blurbRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/school_profiles?select=profile_text&school_id=eq.${schoolId}`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      }),
+      fetch(`${SUPABASE_URL}/rest/v1/program_athletic_blurbs?select=blurb_text&program_id=eq.${programId}&season_year=eq.2025`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      })
+    ]);
+    const schoolData = await schoolRes.json();
+    const blurbData = await blurbRes.json();
+    const schoolText = schoolData && schoolData[0] ? schoolData[0].profile_text : null;
+    const blurbText = blurbData && blurbData[0] ? blurbData[0].blurb_text : null;
+    let html = '';
+    if (schoolText) {
+      html += `<div class="profile-section"><div class="profile-label">About the School</div><div class="profile-text">${escapeHtml(schoolText)}</div></div>`;
+    }
+    if (blurbText) {
+      html += `<div class="profile-section"><div class="profile-label">Program Outlook</div><div class="profile-text">${escapeHtml(blurbText)}</div></div>`;
+    }
+    if (!schoolText && !blurbText) {
+      html = '<div class="profile-empty">No school or program profile available yet for this team.</div>';
+    }
+    profileCache[cacheKey] = html;
+    contentDiv.innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    contentDiv.innerHTML = '<div class="profile-empty">Could not load profile info right now.</div>';
+  }
+}
 function renderTable(rows) {
   const tbody = document.getElementById('rankings-body');
   if (rows.length === 0) {
@@ -362,15 +390,14 @@ function renderTable(rows) {
     return;
   }
   tbody.innerHTML = '';
-  rows.forEach(item => {
+  rows.forEach((item, idx) => {
     const school = item.programs.schools;
+    const schoolId = item.programs.school_id;
     const tier = item.tier;
     const divClass = getDivisionClass(school.division);
     const divLabel = getDivisionLabel(school.division);
-
     const powerHtml = getPowerScoreHtml(item, school.division);
     const tierHtml = getTierHtml(tier);
-
     const display = item.coach_grade_display;
     const gradeKey = display ? display[0] : null;
     const trendKey = display ? display[1] : null;
@@ -381,29 +408,35 @@ function renderTable(rows) {
     const gradeHtml = display
       ? `<span class="coach-grade grade-${gradeKey.toLowerCase()}">${display}<span class="coach-tooltip">${tooltip}</span></span>`
       : `<span class="grade-none">—</span>`;
-
     const rosterHtml = getRosterHtml(item);
     const rankDisplay = item.universal_rank !== null ? item.universal_rank : '—';
     const divRankDisplay = item.division_rank ? `#${item.division_rank}` : '—';
-
+    const rowId = 'row' + idx;
     tbody.innerHTML += `
       <tr>
         <td class="rank">${rankDisplay}</td>
-        <td class="school-name">${school.name}</td>
+        <td class="school-name" onclick="toggleProfile('${item.program_id}', '${schoolId}', '${rowId}')">
+          <span class="expand-icon" id="icon-${rowId}">▶</span>${school.name}
+        </td>
         <td><span class="${divClass}">${divLabel}</span></td>
         <td class="div-rank">${divRankDisplay}</td>
         <td>${powerHtml}</td>
         <td>${tierHtml}</td>
         <td>${gradeHtml}</td>
         <td>${rosterHtml}</td>
+      </tr>
+      <tr class="profile-row hidden" id="profile-${rowId}">
+        <td colspan="8">
+          <div class="profile-content" id="profile-content-${rowId}"></div>
+        </td>
       </tr>`;
   });
   document.getElementById('results-count').textContent =
     `Showing ${rows.length} of ${allRows.length} programs`;
 }
-
 function sortTable(key) {
   if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+  openProgramId = null;
   const sorted = [...allRows].sort((a, b) => {
     let aVal, bVal;
     if (key === 'name') { aVal = a.programs.schools.name.toLowerCase(); bVal = b.programs.schools.name.toLowerCase(); }
@@ -420,11 +453,11 @@ function sortTable(key) {
   });
   renderTable(sorted);
 }
-
 function filterTable() {
   const search = document.getElementById('search').value.toLowerCase();
   const division = document.getElementById('division-filter').value;
   const tier = document.getElementById('tier-filter').value;
+  openProgramId = null;
   const filtered = allRows.filter(item => {
     const school = item.programs.schools;
     const matchesSearch = !search || school.name.toLowerCase().includes(search);
@@ -434,7 +467,6 @@ function filterTable() {
   });
   renderTable(filtered);
 }
-
 updateDivisionFilter();
 loadRankings();
 </script>
