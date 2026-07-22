@@ -353,26 +353,39 @@ async function toggleProfile(programId, schoolId, rowId) {
   }
   contentDiv.innerHTML = '<div class="profile-loading">Loading school &amp; program info…</div>';
   try {
-    const [schoolRes, blurbRes] = await Promise.all([
+    const [schoolRes, blurbRes, statsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/school_profiles?select=profile_text&school_id=eq.${schoolId}`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       }),
       fetch(`${SUPABASE_URL}/rest/v1/program_athletic_blurbs?select=blurb_text&program_id=eq.${programId}&season_year=eq.2025`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      }),
+      fetch(`${SUPABASE_URL}/rest/v1/season_stats?select=wins,losses,ties&program_id=eq.${programId}&season_year=eq.2025`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       })
     ]);
     const schoolData = await schoolRes.json();
     const blurbData = await blurbRes.json();
+    const statsData = await statsRes.json();
     const schoolText = schoolData && schoolData[0] ? schoolData[0].profile_text : null;
     const blurbText = blurbData && blurbData[0] ? blurbData[0].blurb_text : null;
+    const stats = statsData && statsData[0] ? statsData[0] : null;
     let html = '';
+    if (stats) {
+      const tieSports = ['womens-soccer', 'mens-soccer', 'field-hockey'];
+      const showTies = tieSports.includes(currentSport);
+      const record = showTies
+        ? `${stats.wins}-${stats.losses}-${stats.ties || 0}`
+        : `${stats.wins}-${stats.losses}`;
+      html += `<div class="profile-section"><div class="profile-label">2025 Season Record</div><div class="profile-text" style="font-size:16px;font-weight:700;color:#fff;">${record}</div></div>`;
+    }
     if (schoolText) {
       html += `<div class="profile-section"><div class="profile-label">About the School</div><div class="profile-text">${escapeHtml(schoolText)}</div></div>`;
     }
     if (blurbText) {
       html += `<div class="profile-section"><div class="profile-label">Program Outlook</div><div class="profile-text">${escapeHtml(blurbText)}</div></div>`;
     }
-    if (!schoolText && !blurbText) {
+    if (!stats && !schoolText && !blurbText) {
       html = '<div class="profile-empty">No school or program profile available yet for this team.</div>';
     }
     profileCache[cacheKey] = html;
