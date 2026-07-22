@@ -14,10 +14,13 @@
   .hero h1 { font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -1px; margin-bottom: 6px; }
   .hero h1 span { background: linear-gradient(90deg, #888, #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .hero p { color: #888; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
-  .sport-tabs { background: #000; padding: 0 40px; display: flex; gap: 0; border-bottom: 1px solid #333; }
+  .sport-tabs { background: #000; padding: 0 40px; display: flex; gap: 0; border-bottom: 1px solid #333; align-items: center; flex-wrap: wrap; }
   .sport-tab { padding: 14px 24px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #555; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
   .sport-tab:hover { color: #aaa; }
   .sport-tab.active { color: #fff; border-bottom-color: #fff; }
+  .more-sports-select { background: #000; color: #555; border: none; padding: 14px 24px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; outline: none; }
+  .more-sports-select:hover { color: #aaa; }
+  .more-sports-select.active { color: #fff; }
   .controls-wrap { background: #1a1a1a; padding: 20px 40px; border-bottom: 1px solid #2a2a2a; }
   .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .search-box { flex: 1; min-width: 220px; padding: 10px 16px; border: 1px solid #333; border-radius: 6px; font-size: 14px; outline: none; background: #2a2a2a; color: #fff; }
@@ -88,13 +91,35 @@
   <span class="header-title">Power Rankings Engine</span>
 </div>
 <div class="hero">
-  <h1 id="hero-title">Women's Soccer <span>Power Rankings</span></h1>
-  <p id="hero-subtitle">All Divisions &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season</p>
+  <h1 id="hero-title">Select a <span>Sport</span></h1>
+  <p id="hero-subtitle">Choose a sport above to view rankings</p>
 </div>
 <div class="sport-tabs">
-  <div class="sport-tab active" onclick="switchSport('womens-soccer', this)">⚽ Women's Soccer</div>
+  <div class="sport-tab" onclick="switchSport('womens-soccer', this)">⚽ Women's Soccer</div>
   <div class="sport-tab" onclick="switchSport('mens-soccer', this)">⚽ Men's Soccer</div>
   <div class="sport-tab" onclick="switchSport('football', this)">🏈 Football</div>
+  <select class="more-sports-select" id="more-sports" onchange="onMoreSportsChange(this)">
+    <option value="">More Sports...</option>
+    <option value="mens-tennis">Men's Tennis</option>
+    <option value="womens-tennis">Women's Tennis</option>
+    <option value="mens-golf">Men's Golf</option>
+    <option value="womens-golf">Women's Golf</option>
+    <option value="mens-swimming-and-diving">Men's Swimming &amp; Diving</option>
+    <option value="womens-swimming-and-diving">Women's Swimming &amp; Diving</option>
+    <option value="mens-track-and-field">Men's Track &amp; Field</option>
+    <option value="womens-track-and-field">Women's Track &amp; Field</option>
+    <option value="mens-cross-country">Men's Cross Country</option>
+    <option value="womens-cross-country">Women's Cross Country</option>
+    <option value="mens-lacrosse">Men's Lacrosse</option>
+    <option value="womens-lacrosse">Women's Lacrosse</option>
+    <option value="mens-volleyball">Men's Volleyball</option>
+    <option value="womens-volleyball">Women's Volleyball</option>
+    <option value="baseball">Baseball</option>
+    <option value="softball">Softball</option>
+    <option value="mens-wrestling">Wrestling (Men's)</option>
+    <option value="womens-wrestling">Wrestling (Women's)</option>
+    <option value="field-hockey">Field Hockey</option>
+  </select>
 </div>
 <div class="controls-wrap">
   <div class="controls">
@@ -128,7 +153,7 @@
       </tr>
     </thead>
     <tbody id="rankings-body">
-      <tr><td colspan="8" class="loading">Loading Rankings...</td></tr>
+      <tr><td colspan="8" class="loading">Choose a sport above to view rankings</td></tr>
     </tbody>
   </table>
 </div>
@@ -165,32 +190,39 @@ const trendTooltips = {
   '↓': 'Trending down — program has declined over the last 3 seasons',
   '→': 'Holding steady — performance has been consistent over the last 3 seasons',
 };
+const genericDivisions = {
+  divisions: ['NCAA_D1', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
+  divisionLabels: { 'NCAA_D1': 'D1', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
+  divisionClasses: { 'NCAA_D1': 'division-d1', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
+  filterOptions: [
+    { value: 'NCAA_D1', label: 'NCAA Division I' },
+    { value: 'NCAA_D2', label: 'NCAA Division II' },
+    { value: 'NCAA_D3', label: 'NCAA Division III' },
+    { value: 'NAIA', label: 'NAIA' }
+  ]
+};
+const sportLabels = {
+  'mens-tennis': "Men's Tennis", 'womens-tennis': "Women's Tennis",
+  'mens-golf': "Men's Golf", 'womens-golf': "Women's Golf",
+  'mens-swimming-and-diving': "Men's Swimming & Diving", 'womens-swimming-and-diving': "Women's Swimming & Diving",
+  'mens-track-and-field': "Men's Track & Field", 'womens-track-and-field': "Women's Track & Field",
+  'mens-cross-country': "Men's Cross Country", 'womens-cross-country': "Women's Cross Country",
+  'mens-lacrosse': "Men's Lacrosse", 'womens-lacrosse': "Women's Lacrosse",
+  'mens-volleyball': "Men's Volleyball", 'womens-volleyball': "Women's Volleyball",
+  'baseball': "Baseball", 'softball': "Softball",
+  'mens-wrestling': "Wrestling (Men's)", 'womens-wrestling': "Wrestling (Women's)",
+  'field-hockey': "Field Hockey",
+};
 const sportConfig = {
   'womens-soccer': {
     title: "Women's Soccer",
     subtitle: "All Divisions &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season",
-    divisions: ['NCAA_D1', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
-    divisionLabels: { 'NCAA_D1': 'D1', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
-    divisionClasses: { 'NCAA_D1': 'division-d1', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
-    filterOptions: [
-      { value: 'NCAA_D1', label: 'NCAA Division I' },
-      { value: 'NCAA_D2', label: 'NCAA Division II' },
-      { value: 'NCAA_D3', label: 'NCAA Division III' },
-      { value: 'NAIA', label: 'NAIA' }
-    ]
+    ...genericDivisions
   },
   'mens-soccer': {
     title: "Men's Soccer",
     subtitle: "All Divisions &nbsp;·&nbsp; 3-Year Weighted Score &nbsp;·&nbsp; 2025 Season",
-    divisions: ['NCAA_D1', 'NCAA_D2', 'NCAA_D3', 'NAIA'],
-    divisionLabels: { 'NCAA_D1': 'D1', 'NCAA_D2': 'D2', 'NCAA_D3': 'D3', 'NAIA': 'NAIA' },
-    divisionClasses: { 'NCAA_D1': 'division-d1', 'NCAA_D2': 'division-d2', 'NCAA_D3': 'division-d3', 'NAIA': 'division-naia' },
-    filterOptions: [
-      { value: 'NCAA_D1', label: 'NCAA Division I' },
-      { value: 'NCAA_D2', label: 'NCAA Division II' },
-      { value: 'NCAA_D3', label: 'NCAA Division III' },
-      { value: 'NAIA', label: 'NAIA' }
-    ]
+    ...genericDivisions
   },
   'football': {
     title: 'Football',
@@ -207,16 +239,40 @@ const sportConfig = {
     ]
   }
 };
+Object.keys(sportLabels).forEach(slug => {
+  sportConfig[slug] = {
+    title: sportLabels[slug],
+    subtitle: "All Divisions &nbsp;·&nbsp; 2025 Season",
+    ...genericDivisions
+  };
+});
 let allRows = [];
-let currentSport = 'womens-soccer';
+let currentSport = null;
 let sortKey = 'universal_rank';
 let sortAsc = true;
 let openProgramId = null;
 const profileCache = {};
+function onMoreSportsChange(select) {
+  const sport = select.value;
+  if (!sport) return;
+  document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
+  select.classList.add('active');
+  currentSport = sport;
+  openProgramId = null;
+  document.getElementById('hero-title').innerHTML = sportConfig[sport].title + ' <span>Power Rankings</span>';
+  document.getElementById('hero-subtitle').innerHTML = sportConfig[sport].subtitle;
+  updateDivisionFilter();
+  document.getElementById('search').value = '';
+  document.getElementById('tier-filter').value = '';
+  document.getElementById('division-filter').value = '';
+  loadRankings();
+}
 function switchSport(sport, tab) {
   currentSport = sport;
   openProgramId = null;
   document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('more-sports').classList.remove('active');
+  document.getElementById('more-sports').value = '';
   tab.classList.add('active');
   document.getElementById('hero-title').innerHTML = sportConfig[sport].title + ' <span>Power Rankings</span>';
   document.getElementById('hero-subtitle').innerHTML = sportConfig[sport].subtitle;
@@ -234,6 +290,12 @@ function updateDivisionFilter() {
   });
 }
 async function loadRankings() {
+  if (!currentSport) {
+    document.getElementById('rankings-body').innerHTML =
+      '<tr><td colspan="8" class="loading">Choose a sport above to view rankings</td></tr>';
+    document.getElementById('results-count').textContent = '';
+    return;
+  }
   document.getElementById('rankings-body').innerHTML =
     '<tr><td colspan="8" class="loading">Loading Rankings...</td></tr>';
   try {
@@ -480,8 +542,6 @@ function filterTable() {
   });
   renderTable(filtered);
 }
-updateDivisionFilter();
-loadRankings();
 </script>
 </body>
 </html>
